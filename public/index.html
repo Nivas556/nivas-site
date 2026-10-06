@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nivas Kalyan Pandiri · UPSC Mission Control</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--tx:#e9edff;--mu:#9aa6cf;--ac:#7cb4ff;--ac2:#ffb454;--bd:rgba(140,160,255,.22);--card:rgba(14,18,42,.72);--ok:#5fe0a8;--bad:#ff7d6b}
+*{box-sizing:border-box}html,body{margin:0;background:#05061a;color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.wrap{position:relative;z-index:1}
+header{max-width:1000px;margin:auto;padding:22px 14px 8px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:flex-end}
+h1{margin:0;font:700 26px Georgia,serif}h1 span{background:linear-gradient(90deg,#ffb454,#ff7eb6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub,.k{color:var(--mu);font-size:12px}.st{font-size:12px;padding:3px 10px;border:1px solid var(--bd);border-radius:20px;background:var(--card)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;backdrop-filter:blur(10px);background:rgba(5,6,26,.55);border-bottom:1px solid var(--bd)}
+.tabs{max-width:1000px;margin:auto;display:flex;gap:4px;overflow-x:auto;padding:6px 10px}
+.tab{border:0;background:none;color:var(--mu);padding:8px 14px;border-radius:20px;white-space:nowrap}
+.tab.on{background:linear-gradient(90deg,#3d6fd8,#7a4fd8);color:#fff}
+main{max-width:1000px;margin:auto;padding:14px 10px 70px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;backdrop-filter:blur(8px)}
+.card h3{margin:0 0 8px;font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}
+.big{font-size:28px;font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+input,select,textarea,button{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:rgba(255,255,255,.07);color:var(--tx)}
+select option{background:#12163a}textarea{width:100%;min-height:110px}input.w{flex:1;min-width:120px}
+button{cursor:pointer}button.p{background:linear-gradient(90deg,#3d6fd8,#7a4fd8);border:0;color:#fff}button.d{color:var(--bad)}
+.bars{display:flex;align-items:flex-end;gap:4px;height:130px}
+.bar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.bar i{display:block;width:100%;background:linear-gradient(#7cb4ff,#5a4fd8);border-radius:4px 4px 0 0;min-height:2px}
+.bar b{font-size:10px;color:var(--mu);font-weight:400;margin-top:3px;white-space:nowrap}.bar u{font-size:10px;text-decoration:none}
+.hb{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}.hb span:first-child{width:105px;flex:none}
+.hb div{flex:1;background:rgba(255,255,255,.1);border-radius:6px;height:10px}.hb div i{display:block;height:10px;border-radius:6px;background:var(--ac2)}
+.timer{font:700 40px ui-monospace,Menlo,monospace;letter-spacing:.04em}
+.item{border-top:1px solid var(--bd);padding:8px 0;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.note{border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.04)}.note h4{margin:4px 0}.note p{white-space:pre-wrap;margin:4px 0;font-size:14px}
+.tag{font-size:11px;background:rgba(124,180,255,.2);padding:2px 8px;border-radius:10px}
+.file{display:inline-block;margin:2px 6px 2px 0;font-size:13px;color:var(--ac)}
+.prog{height:8px;background:rgba(255,255,255,.12);border-radius:6px;margin:4px 0 10px}.prog i{display:block;height:8px;border-radius:6px;background:var(--ok)}
+a{color:var(--ac)}
+</style></head><body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+<header><div><h1>Nivas Kalyan <span>Pandiri</span></h1><div class="sub">UPSC Civil Services · Mission Control</div></div><div class="st" id="st">connecting…</div></header>
+<nav><div class="tabs" id="tabs"></div></nav>
+<main id="main"></main></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const SUBJ=["Polity","History","Geography","Economy","Environment","Science & Tech","Ethics","Current Affairs","Optional","Essay","CSAT"];
+const CAT=["Books","Coaching","Food","Travel","Rent","Internet","Stationery","Other"];
+const $=s=>document.querySelector(s);
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
+const today=()=>iso(new Date()),D=s=>new Date(s+"T00:00:00");
+const wk=s=>{const d=D(s);d.setDate(d.getDate()-(d.getDay()+6)%7);return iso(d)},mo=s=>s.slice(0,7);
+const hm=m=>Math.floor(m/60)+"h "+Math.round(m%60)+"m",inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0),opts=a=>a.map(x=>`<option>${esc(x)}</option>`).join("");
+const group=(a,k,v)=>{const o={};a.forEach(x=>{o[k(x)]=(o[k(x)]||0)+v(x)});return o};
+const lastDays=n=>Array.from({length:n},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(n-1-i));return iso(d)});
+function bars(l,v,f){const m=Math.max(...v,1);return `<div class="bars">`+v.map((x,i)=>`<div class="bar"><u>${x?f(x):""}</u><i style="height:${x/m*80}%"></i><b>${l[i]}</b></div>`).join("")+`</div>`}
+function hbars(o,f){const e=Object.entries(o).sort((a,b)=>b[1]-a[1]);const m=e.length?e[0][1]:1;return e.length?e.map(([k,v])=>`<div class="hb"><span>${esc(k)}</span><div><i style="width:${v/m*100}%"></i></div><span>${f(v)}</span></div>`).join(""):'<div class="k">No data yet</div>'}
+/* ---------- data layer: Socket.IO server ---------- */
+let S={logs:[],exp:[],notes:[],topics:[],cfg:{}},socket=null;
+const assets={async upload(f){const fd=new FormData();fd.append("file",f);const r=await fetch("/upload",{method:"POST",body:fd});if(!r.ok)throw{code:r.status};return r.json()}};
+const add=(n,o)=>socket.emit("add",n,o),upd=(n,id,o)=>socket.emit("upd",n,id,o),del=(n,id)=>socket.emit("del",n,id);
+const cfg=async p=>{S.cfg={...S.cfg,...p};socket.emit("cfg",p);rr()};
+let raf=0;const rr=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(fill)};
+
+/* ---------- tabs ---------- */
+const T={dash:{n:"Dashboard"},study:{n:"Study Hours"},notes:{n:"Notes"},syl:{n:"Syllabus"},exp:{n:"Expenses"}};
+let cur=localStorage.getItem("nv_tab");if(!T[cur])cur="dash";
+$("#tabs").innerHTML=Object.entries(T).map(([k,v])=>`<button class="tab" data-a="tab" data-v="${k}">${v.n}</button>`).join("");
+const SH={
+dash:()=>`<div id="d1"></div>`,
+study:()=>`<div class="card"><h3>Study timer · synced on all devices</h3><div class="timer" id="tm">00:00:00</div><div class="row"><select id="ts">${opts(SUBJ)}</select><button class="p" id="tb" data-a="tt">Start</button></div></div>
+<div class="card"><h3>Add manually</h3><div class="row"><input type="date" id="md"><select id="ms">${opts(SUBJ)}</select><input id="mh" type="number" min="0" step="0.25" placeholder="hours" style="width:90px"><button class="p" data-a="la">Add</button></div></div><div id="d1"></div>`,
+notes:()=>`<div class="card"><h3 id="nh">New note</h3><div class="row"><select id="ns">${opts(SUBJ)}</select><input class="w" id="nt" placeholder="Title / topic"></div><textarea id="nb" placeholder="Notes, mnemonics, PYQ points…"></textarea>
+<div class="row">${assets?'<input type="file" id="nf" multiple accept=".pdf,image/*,.txt,.md"> ':''}<button class="p" data-a="ns">Save note</button><button data-a="nx" id="nx" hidden>Cancel</button></div></div>
+<div class="row"><select id="nfs"><option>All</option>${opts(SUBJ)}</select><input class="w" id="nq" placeholder="Search notes…"></div><div id="d1"></div>`,
+syl:()=>`<div id="d2"></div><div class="card"><h3>Topics</h3><div class="row"><select id="sj">${opts(SUBJ)}</select><input class="w" id="st2" placeholder="Add topic (e.g. Fundamental Rights)"><button class="p" data-a="ta">Add</button></div><div id="d1"></div></div>`,
+exp:()=>`<div class="card"><h3>Add expense</h3><div class="row"><input type="date" id="ed"><select id="ec">${opts(CAT)}</select><input id="ea" type="number" min="0" placeholder="₹ amount" style="width:110px"><input class="w" id="en" placeholder="Note"><button class="p" data-a="ea">Add</button></div></div><div id="d1"></div>`};
+let built="",editId=null,nf2="All",nq="",sj="Polity";
+function go(t){cur=t;try{localStorage.setItem("nv_tab",t)}catch(e){}document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.v==t));$("#main").innerHTML=SH[t]();built=t;
+ if($("#md"))$("#md").value=today();if($("#ed"))$("#ed").value=today();if($("#sj"))$("#sj").value=sj;
+ if($("#nfs"))$("#nfs").onchange=e=>{nf2=e.target.value;fill()};if($("#nq"))$("#nq").oninput=e=>{nq=e.target.value.toLowerCase();fill()};if($("#sj"))$("#sj").onchange=e=>{sj=e.target.value;fill()};fill()}
+function stats(){const t=today(),w=wk(t),m=mo(t);return{d:sum(S.logs.filter(l=>l.date==t),l=>l.min),w:sum(S.logs.filter(l=>wk(l.date)==w),l=>l.min),m:sum(S.logs.filter(l=>mo(l.date)==m),l=>l.min),ed:sum(S.exp.filter(l=>l.date==t),l=>l.amt),ew:sum(S.exp.filter(l=>wk(l.date)==w),l=>l.amt),em:sum(S.exp.filter(l=>mo(l.date)==m),l=>l.amt)}}
+function streak(){const s=new Set(S.logs.map(l=>l.date));let c=0,d=new Date();if(!s.has(iso(d)))d.setDate(d.getDate()-1);while(s.has(iso(d))){c++;d.setDate(d.getDate()-1)}return c}
+function fill(){if(built!=cur){go(cur);return}const x=$("#d1");if(!x)return;const t=today(),s=stats(),goal=S.cfg.goal||6;
+ if(cur=="dash"){const days=lastDays(7),all=S.topics,dn=all.filter(a=>a.done).length;const left=S.cfg.exam?Math.ceil((D(S.cfg.exam)-D(t))/864e5)+" days":"—";
+  x.innerHTML=`<div class="grid"><div class="card"><h3>Today studied</h3><div class="big">${hm(s.d)}</div><div class="prog"><i style="width:${Math.min(100,s.d/60/goal*100)}%"></i></div><div class="k">Goal ${goal}h/day</div></div>
+  <div class="card"><h3>Week · Month</h3><div class="big">${hm(s.w)}</div><div class="k">Month ${hm(s.m)}</div></div>
+  <div class="card"><h3>Streak</h3><div class="big">${streak()} 🔥</div><div class="k">consecutive days</div></div>
+  <div class="card"><h3>Spent today</h3><div class="big">${inr(s.ed)}</div><div class="k">Week ${inr(s.ew)} · Month ${inr(s.em)}</div></div>
+  <div class="card"><h3>Exam countdown</h3><div class="big">${left}</div><div class="row"><input type="date" id="ex" value="${S.cfg.exam||""}" data-a="exm"></div></div>
+  <div class="card"><h3>Syllabus done</h3><div class="big">${all.length?Math.round(dn/all.length*100):0}%</div><div class="k">${dn}/${all.length} topics · ${S.notes.length} notes</div></div></div>
+  <div class="card"><h3>Last 7 days (hours)</h3>${bars(days.map(d=>D(d).toLocaleDateString("en",{weekday:"short"})),days.map(d=>sum(S.logs.filter(l=>l.date==d),l=>l.min)/60),v=>v.toFixed(1))}</div>
+  <div class="card"><h3>Daily goal (hours)</h3><input type="number" min="1" max="18" step="0.5" value="${goal}" data-a="gl"></div>`}
+ if(cur=="study"){const bD=group(S.logs,l=>l.date,l=>l.min),bW=group(S.logs,l=>wk(l.date),l=>l.min),bM=group(S.logs,l=>mo(l.date),l=>l.min);
+  const wl=[],wv=[],ml=[],mv=[];for(let i=7;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i*7);const k=wk(iso(d));wl.push(k.slice(5));wv.push((bW[k]||0)/60)}
+  for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i,1);const k=mo(iso(d));ml.push(k.slice(2));mv.push((bM[k]||0)/60)}
+  const dl=lastDays(14),tot=sum(S.logs,l=>l.min),nd=Object.keys(bD).length,sorted=[...S.logs].sort((a,b)=>(b.date>a.date)-(b.date<a.date));
+  x.innerHTML=`<div class="grid"><div class="card"><h3>Total</h3><div class="big">${hm(tot)}</div></div><div class="card"><h3>Avg / study day</h3><div class="big">${nd?hm(tot/nd):"—"}</div></div><div class="card"><h3>Best day</h3><div class="big">${nd?hm(Math.max(...Object.values(bD))):"—"}</div></div></div>
+  <div class="card"><h3>Day-wise · 14 days (h)</h3>${bars(dl.map(d=>d.slice(8)),dl.map(d=>(bD[d]||0)/60),v=>v.toFixed(1))}</div>
+  <div class="card"><h3>Week-wise · 8 weeks (h)</h3>${bars(wl,wv,v=>v.toFixed(0))}</div>
+  <div class="card"><h3>Month-wise · 6 months (h)</h3>${bars(ml,mv,v=>v.toFixed(0))}</div>
+  <div class="card"><h3>This month by subject</h3>${hbars(group(S.logs.filter(l=>mo(l.date)==mo(t)),l=>l.subj,l=>l.min),hm)}</div>
+  <div class="card"><h3>Recent sessions</h3>${sorted.slice(0,10).map(l=>`<div class="item"><span>${esc(l.date)} · ${esc(l.subj)} · ${hm(l.min)}</span><button class="d" data-a="ld" data-v="${esc(l.id)}">✕</button></div>`).join("")||'<div class="k">None yet</div>'}</div>`;tb()}
+ if(cur=="exp"){const bD=group(S.exp,l=>l.date,l=>l.amt),bM=group(S.exp,l=>mo(l.date),l=>l.amt),dl=lastDays(14),ml=[],mv=[];
+  for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i,1);const k=mo(iso(d));ml.push(k.slice(2));mv.push(bM[k]||0)}
+  const nd=new Set(S.exp.filter(l=>mo(l.date)==mo(t)).map(l=>l.date)).size,f=v=>v>=1000?(v/1000).toFixed(1)+"k":Math.round(v),sorted=[...S.exp].sort((a,b)=>(b.date>a.date)-(b.date<a.date));
+  x.innerHTML=`<div class="grid"><div class="card"><h3>Today</h3><div class="big">${inr(s.ed)}</div></div><div class="card"><h3>This week</h3><div class="big">${inr(s.ew)}</div></div><div class="card"><h3>This month</h3><div class="big">${inr(s.em)}</div><div class="k">Avg/day ${nd?inr(s.em/nd):"—"}</div></div></div>
+  <div class="card"><h3>Daily · 14 days</h3>${bars(dl.map(d=>d.slice(8)),dl.map(d=>bD[d]||0),f)}</div><div class="card"><h3>Monthly · 6 months</h3>${bars(ml,mv,f)}</div>
+  <div class="card"><h3>This month by category</h3>${hbars(group(S.exp.filter(l=>mo(l.date)==mo(t)),l=>l.cat,l=>l.amt),inr)}</div>
+  <div class="card"><h3>Recent</h3>${sorted.slice(0,12).map(l=>`<div class="item"><span>${esc(l.date)} · ${esc(l.cat)} · <b>${inr(l.amt)}</b> ${esc(l.note)}</span><button class="d" data-a="ed" data-v="${esc(l.id)}">✕</button></div>`).join("")||'<div class="k">None yet</div>'}</div>`}
+ if(cur=="notes"){const L=S.notes.filter(n=>(nf2=="All"||n.subj==nf2)&&((n.title||"")+(n.body||"")).toLowerCase().includes(nq)).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  x.innerHTML=L.map(n=>`<div class="note"><span class="tag">${esc(n.subj)}</span> <span class="k">${esc(n.date)}</span><h4>${esc(n.title)}</h4><p>${esc(n.body)}</p>${(n.files||[]).map(f=>`<a class="file" target="_blank" href="/files/${esc(f.id)}">📎 ${esc(f.name)}</a>`).join("")}<div class="row"><button data-a="ne" data-v="${esc(n.id)}">Edit</button><button class="d" data-a="nd" data-v="${esc(n.id)}">Delete</button></div></div>`).join("")||'<div class="k">No notes yet — add your first one above.</div>'}
+ if(cur=="syl"){$("#d2").innerHTML=`<div class="card"><h3>Overall progress</h3>${SUBJ.map(u=>{const a=S.topics.filter(z=>z.subj==u),d=a.filter(z=>z.done).length;return `<div class="k">${u} — ${d}/${a.length}</div><div class="prog"><i style="width:${a.length?d/a.length*100:0}%"></i></div>`}).join("")}</div>`;
+  x.innerHTML=S.topics.filter(z=>z.subj==sj).map(z=>`<div class="item"><label><input type="checkbox" data-a="tc" data-v="${esc(z.id)}" ${z.done?"checked":""}> ${esc(z.name)}</label><button class="d" data-a="td" data-v="${esc(z.id)}">✕</button></div>`).join("")||'<div class="k">No topics for this subject yet.</div>'}}
+/* timer */
+function tb(){const b=$("#tb");if(b)b.textContent=S.cfg.timer?"Stop & save":"Start";if(S.cfg.timer&&$("#ts"))$("#ts").value=S.cfg.timer.subj}
+setInterval(()=>{const e=$("#tm");if(!e)return;const t=S.cfg.timer;const s=t?Math.floor((Date.now()-t.start)/1000):0;e.textContent=[s/3600,s/60%60,s%60].map(v=>String(Math.floor(v)).padStart(2,"0")).join(":")},1000);
+/* actions */
+const A={
+ tab:v=>go(v),
+ async tt(){const t=S.cfg.timer;if(t){const m=(Date.now()-t.start)/6e4;await cfg({timer:null});if(m>=.1)await add("logs",{date:today(),subj:t.subj,min:+m.toFixed(1)})}else await cfg({timer:{start:Date.now(),subj:$("#ts").value}})},
+ async la(){const h=+$("#mh").value;if(h>0){await add("logs",{date:$("#md").value||today(),subj:$("#ms").value,min:h*60});$("#mh").value=""}},
+ ld:v=>del("logs",v),
+ async ea(){const a=+$("#ea").value;if(a>0){await add("exp",{date:$("#ed").value||today(),cat:$("#ec").value,amt:a,note:$("#en").value});$("#ea").value="";$("#en").value=""}},
+ ed:v=>del("exp",v),
+ async ns(){const o={subj:$("#ns").value,title:$("#nt").value.trim()||"Untitled",body:$("#nb").value,date:today()};let files=[];const fi=$("#nf");
+  if(fi&&fi.files.length&&assets)for(const f of fi.files){try{const r=await assets.upload(f);files.push({id:r.id,name:f.name})}catch(e){alert("Upload failed: "+((e&&e.code)||"error"))}}
+  if(editId){const old=S.notes.find(n=>n.id==editId)||{};await upd("notes",editId,{...o,files:[...(old.files||[]),...files]})}else await add("notes",{...o,files,ts:Date.now()});A.nx()},
+ ne(v){const n=S.notes.find(z=>z.id==v);if(!n)return;editId=v;$("#ns").value=n.subj;$("#nt").value=n.title;$("#nb").value=n.body;$("#nh").textContent="Edit note";$("#nx").hidden=false;scrollTo(0,0)},
+ nx(){editId=null;$("#nt").value="";$("#nb").value="";if($("#nf"))$("#nf").value="";$("#nh").textContent="New note";$("#nx").hidden=true},
+ nd(v){if(confirm("Delete this note?"))del("notes",v)},
+ async ta(){const v=$("#st2").value.trim();if(v){await add("topics",{subj:sj,name:v,done:false});$("#st2").value=""}},
+ td:v=>del("topics",v),
+ gl(v,e){cfg({goal:+e.target.value||6})},exm(v,e){cfg({exam:e.target.value})}};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||b.matches("input[type=checkbox],input[type=number],input[type=date]"))return;const f=A[b.dataset.a];if(f)f(b.dataset.v,e)});
+document.addEventListener("change",e=>{const b=e.target;if(b.dataset.a=="tc")upd("topics",b.dataset.v,{done:b.checked});else if(b.dataset.a=="gl"||b.dataset.a=="exm")A[b.dataset.a](0,e)});
+/* ---------- boot ---------- */
+go(cur);
+function connect(){socket=io();socket.on("connect",()=>$("#st").textContent="● Live sync on");socket.on("disconnect",()=>$("#st").textContent="○ Reconnecting…");socket.on("connect_error",()=>$("#st").textContent="○ Offline");socket.on("state",d=>{S={logs:[],exp:[],notes:[],topics:[],cfg:{},...d};rr()})}
+function login(){const o=document.createElement("div");o.style.cssText="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(5,6,26,.8);backdrop-filter:blur(6px)";o.innerHTML='<div class="card" style="width:min(340px,90%)"><h3>Sign in</h3><div class="row"><input class="w" id="pw" type="password" placeholder="Password"><button class="p" id="go">Enter</button></div><div class="k" id="er"></div></div>';document.body.appendChild(o);
+ const tryit=async()=>{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:o.querySelector("#pw").value})});if(r.ok){o.remove();connect()}else o.querySelector("#er").textContent=r.status==429?"Too many attempts, wait a while":"Wrong password"};
+ o.querySelector("#go").onclick=tryit;o.querySelector("#pw").onkeydown=e=>{if(e.key=="Enter")tryit()};o.querySelector("#pw").focus()}
+fetch("/api/me").then(r=>r.ok?connect():login()).catch(()=>$("#st").textContent="○ Offline");
+/* ---------- animated space background ---------- */
+const cv=$("#bg"),cx=cv.getContext("2d"),still=matchMedia("(prefers-reduced-motion:reduce)").matches;let W,H,stars=[],rocks=[],comet=null;
+const rock=()=>{const r=12+Math.random()*30,n=9+(Math.random()*4|0);return{x:Math.random()*(W+200),y:Math.random()*H-50,r,p:Array.from({length:n},()=>.72+Math.random()*.4),a:Math.random()*6.28,va:(Math.random()-.5)*.012,vx:-(.25+Math.random()*.7),vy:.12+Math.random()*.35,h:20+Math.random()*30}};
+function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;stars=Array.from({length:Math.min(260,W*H/5500|0)},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*1.8+.3,t:Math.random()*6}));rocks=Array.from({length:W<600?6:10},rock)}
+function frame(){const g=cx.createLinearGradient(0,0,W,H);g.addColorStop(0,"#05061a");g.addColorStop(.55,"#120b33");g.addColorStop(1,"#071a30");cx.fillStyle=g;cx.fillRect(0,0,W,H);
+ const nb=cx.createRadialGradient(W*.75,H*.2,0,W*.75,H*.2,W*.5);nb.addColorStop(0,"rgba(120,70,220,.22)");nb.addColorStop(1,"rgba(0,0,0,0)");cx.fillStyle=nb;cx.fillRect(0,0,W,H);
+ for(const s of stars){s.x-=s.z*.18;s.y+=s.z*.07;s.t+=.03;if(s.x<0)s.x=W;if(s.y>H)s.y=0;cx.globalAlpha=.45+.45*Math.sin(s.t);cx.fillStyle="#fff";cx.fillRect(s.x,s.y,s.z,s.z)}cx.globalAlpha=1;
+ for(const k of rocks){k.x+=k.vx;k.y+=k.vy;k.a+=k.va;if(k.x<-60||k.y>H+60){Object.assign(k,rock(),{x:W+60,y:Math.random()*H*.8-40})}
+  cx.save();cx.translate(k.x,k.y);cx.rotate(k.a);cx.beginPath();k.p.forEach((m,i)=>{const t=i/k.p.length*6.283;cx[i?"lineTo":"moveTo"](Math.cos(t)*k.r*m,Math.sin(t)*k.r*m)});cx.closePath();
+  const rg=cx.createRadialGradient(-k.r*.3,-k.r*.3,1,0,0,k.r*1.1);rg.addColorStop(0,`hsl(${k.h},18%,52%)`);rg.addColorStop(1,`hsl(${k.h},20%,16%)`);cx.fillStyle=rg;cx.fill();cx.strokeStyle="rgba(255,255,255,.12)";cx.stroke();
+  cx.fillStyle="rgba(0,0,0,.22)";cx.beginPath();cx.arc(k.r*.25,k.r*.1,k.r*.18,0,6.3);cx.fill();cx.restore()}
+ if(!comet&&Math.random()<.004)comet={x:Math.random()*W+W*.3,y:-10,vx:-9,vy:4.5,l:0};
+ if(comet){comet.x+=comet.vx;comet.y+=comet.vy;comet.l++;const gr=cx.createLinearGradient(comet.x,comet.y,comet.x-comet.vx*9,comet.y-comet.vy*9);gr.addColorStop(0,"rgba(255,255,255,.95)");gr.addColorStop(1,"rgba(255,255,255,0)");cx.strokeStyle=gr;cx.lineWidth=2;cx.beginPath();cx.moveTo(comet.x,comet.y);cx.lineTo(comet.x-comet.vx*9,comet.y-comet.vy*9);cx.stroke();if(comet.x<-100||comet.y>H+100)comet=null}
+ if(!still)requestAnimationFrame(frame)}
+addEventListener("resize",size);size();frame();
+</script></body></html>
